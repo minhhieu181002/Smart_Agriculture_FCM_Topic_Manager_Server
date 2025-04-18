@@ -12,7 +12,6 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(apiKeyAuth);
 
 // Initialize Firebase Admin SDK with service account
 const serviceAccount = require("./serviceAccountKey.json");
@@ -23,8 +22,18 @@ admin.initializeApp({
 
 // Define port
 const PORT = process.env.PORT || 3000;
+async function subscribeToTopics(token, topics) {
+  // Subscribe the device to each topic in array
+  for (const topic of topics) {
+    await admin.messaging().subscribeToTopic(token, topic);
+    console.log(`Device ${token.substring(0, 10)}... subscribed to ${topic}`);
+  }
+  return {
+    success: true,
+    message: `Successfully subscribed to ${topics.join(", ")}`,
+  };
+}
 
-// Routes
 app.post("/api/subscribe", async (req, res) => {
   try {
     const { token, topics } = req.body;
@@ -37,15 +46,8 @@ app.post("/api/subscribe", async (req, res) => {
       });
     }
 
-    // Subscribe the device to each topic in array
-    for (const topic of topics) {
-      await admin.messaging().subscribeToTopic(token, topic);
-      console.log(`Device ${token.substring(0, 10)}... subscribed to ${topic}`);
-    }
-    return res.status(200).json({
-      success: true,
-      message: `Successfully subscribed to ${topics.join(", ")}`,
-    });
+    const result = await subscribeToTopics(token, topics);
+    return res.status(200).json(result);
   } catch (error) {
     console.error("Error subscribing to topic:", error);
     return res.status(500).json({
@@ -55,34 +57,35 @@ app.post("/api/subscribe", async (req, res) => {
     });
   }
 });
+
+// Make proxy endpoint not require authentication
+app.use("/api/subscribe-proxy", express.json());
 app.post("/api/subscribe-proxy", async (req, res) => {
   try {
-    const response = await axios.post(
-      "https://smart-agriculture-fcm-topic-manager.onrender.com/api/subscribe",
-      req.body,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.API_KEY,
-        },
-      }
-    );
-    res.status(response.status).json(response.data);
+    const { token, topics } = req.body;
+
+    // Validate request body
+    if (!token || !Array.isArray(topics) || topics.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Token and topics array are required",
+      });
+    }
+
+    // Call the subscribe function directly
+    const result = await subscribeToTopics(token, topics);
+    return res.status(200).json(result);
   } catch (error) {
-    res.status(error.response?.status || 500).json({
+    console.error("Error in subscribe-proxy:", error);
+    return res.status(500).json({
       success: false,
       message: "Proxy error",
       error: error.message,
     });
   }
 });
-app.use((req, res, next) => {
-  if (req.headers["x-api-key"]) {
-    console.log("Received x-api-key:", req.headers["x-api-key"]);
-  }
-  console.log("Server API_KEY:", process.env.API_KEY);
-  next();
-});
+app.use(apiKeyAuth);
+
 app.post("/api/unsubscribe", async (req, res) => {
   try {
     const { token, topic } = req.body;
