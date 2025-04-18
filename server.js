@@ -76,6 +76,13 @@ app.post("/api/subscribe-proxy", async (req, res) => {
     });
   }
 });
+app.use((req, res, next) => {
+  if (req.headers["x-api-key"]) {
+    console.log("Received x-api-key:", req.headers["x-api-key"]);
+  }
+  console.log("Server API_KEY:", process.env.API_KEY);
+  next();
+});
 app.post("/api/unsubscribe", async (req, res) => {
   try {
     const { token, topic } = req.body;
