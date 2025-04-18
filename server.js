@@ -2,6 +2,7 @@
 const { apiKeyAuth } = require("./middleware/auth");
 const express = require("express");
 const cors = require("cors");
+const axios = require("axios");
 const admin = require("firebase-admin");
 require("dotenv").config();
 
@@ -54,7 +55,27 @@ app.post("/api/subscribe", async (req, res) => {
     });
   }
 });
-
+app.post("/api/subscribe-proxy", async (req, res) => {
+  try {
+    const response = await axios.post(
+      "https://smart-agriculture-fcm-topic-manager.onrender.com/api/subscribe",
+      req.body,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.API_KEY,
+        },
+      }
+    );
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    res.status(error.response?.status || 500).json({
+      success: false,
+      message: "Proxy error",
+      error: error.message,
+    });
+  }
+});
 app.post("/api/unsubscribe", async (req, res) => {
   try {
     const { token, topic } = req.body;
