@@ -88,38 +88,6 @@ app.post("/api/unsubscribe", async (req, res) => {
   }
 });
 
-// Bulk subscription endpoint
-// app.post("/api/subscribe/bulk", async (req, res) => {
-//   try {
-//     const { tokens, topic } = req.body;
-
-//     // Validate request body
-//     if (!tokens || !Array.isArray(tokens) || !topic) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Tokens array and topic are required",
-//       });
-//     }
-
-//     // Subscribe devices to the topic
-//     await admin.messaging().subscribeToTopic(tokens, topic);
-
-//     console.log(`${tokens.length} devices subscribed to ${topic}`);
-
-//     return res.status(200).json({
-//       success: true,
-//       message: `Successfully subscribed ${tokens.length} devices to ${topic}`,
-//     });
-//   } catch (error) {
-//     console.error("Error bulk subscribing to topic:", error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Failed to bulk subscribe to topic",
-//       error: error.message,
-//     });
-//   }
-// });
-
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
